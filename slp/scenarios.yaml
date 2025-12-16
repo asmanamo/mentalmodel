@@ -1,0 +1,123 @@
+scenarios:
+  api_latency:
+    title: "API feels slow (latency complaint)"
+    description: "When everything looks fine (CPU/mem) but users feel slowness."
+    layers:
+      CPU:
+        likelihood: "Low–Medium"
+        signals: ["CPU not pegged", "p99 latency high but CPU steady"]
+        checks: ["Check hot paths only if CPU climbs", "Look for tight loops or JSON parsing hotspots"]
+      Memory:
+        likelihood: "Medium"
+        signals: ["Latency spikes", "GC-related pauses", "high allocations"]
+        checks: ["Check allocation rate", "Inspect GC logs/metrics", "Look for large object churn"]
+      Disk:
+        likelihood: "Medium"
+        signals: ["Slow queries", "IO wait", "cold cache behavior"]
+        checks: ["Check DB/storage latency", "Look for fsync-heavy paths", "Check local vs network disk"]
+      Network:
+        likelihood: "High"
+        signals: ["Cross-zone calls", "many downstream dependencies", "retries/timeouts"]
+        checks: ["Count round-trips", "Check DNS time", "Measure p50 vs p99", "Trace service-to-service hops"]
+      OS:
+        likelihood: "Medium"
+        signals: ["context switching", "thread contention", "noisy neighbor"]
+        checks: ["Check load average vs CPU", "Inspect thread counts", "Check limits/ulimits"]
+      Runtime:
+        likelihood: "High"
+        signals: ["serialization overhead", "GC pauses", "interpreter overhead"]
+        checks: ["Measure serialization size", "Reduce per-request allocations", "Cache computed transforms"]
+      Framework:
+        likelihood: "High"
+        signals: ["retry storms", "middleware overhead", "N+1 queries"]
+        checks: ["Audit retries/backoff", "Disable expensive middleware", "Check ORM query patterns"]
+      Cloud:
+        likelihood: "Medium–High"
+        signals: ["autoscaling churn", "cold starts", "cross-AZ traffic"]
+        checks: ["Check scaling events", "Warm-up strategies", "AZ/region placement review"]
+      AI:
+        likelihood: "Low"
+        signals: ["LLM call in request path", "token latency", "rate limits"]
+        checks: ["Move AI off hot path", "Async/queue", "Cache prompts/responses"]
+
+  high_cpu:
+    title: "CPU spikes under load"
+    description: "Requests increase and CPU climbs; throughput collapses."
+    layers:
+      CPU:
+        likelihood: "High"
+        signals: ["CPU pegged", "throughput drops as CPU rises"]
+        checks: ["Profile hotspots", "Reduce JSON parsing work", "Check tight loops"]
+      Memory:
+        likelihood: "Medium"
+        signals: ["allocation rate high", "GC pressure"]
+        checks: ["Reduce object churn", "Reuse buffers", "Check memory leaks"]
+      Disk:
+        likelihood: "Low–Medium"
+        signals: ["IO wait grows with CPU", "sync writes"]
+        checks: ["Confirm IO wait", "Batch writes", "Use async IO if possible"]
+      Network:
+        likelihood: "Medium"
+        signals: ["TLS overhead", "too many downstream calls"]
+        checks: ["Connection reuse", "HTTP keep-alive", "Reduce chattiness"]
+      OS:
+        likelihood: "Medium"
+        signals: ["context switches", "run queue grows"]
+        checks: ["Check threads/processes", "Tune worker counts"]
+      Runtime:
+        likelihood: "High"
+        signals: ["interpreter overhead", "GIL contention", "JIT warmup issues"]
+        checks: ["Offload CPU-bound to native libs", "Use multiprocessing", "Batch operations"]
+      Framework:
+        likelihood: "Medium"
+        signals: ["heavy middleware", "expensive request hooks"]
+        checks: ["Remove/optimize middleware", "Cache repeated computations"]
+      Cloud:
+        likelihood: "Medium"
+        signals: ["instance type too small", "CPU credits exhausted"]
+        checks: ["Check burst credits", "Right-size instances"]
+      AI:
+        likelihood: "Low–Medium"
+        signals: ["embedding/LLM calls heavy"]
+        checks: ["Move offline", "Queue jobs", "Cache outputs"]
+
+  memory_leak:
+    title: "Memory grows slowly (possible leak)"
+    description: "Memory increases across hours/days; restarts temporarily fix it."
+    layers:
+      CPU:
+        likelihood: "Low"
+        signals: ["CPU normal", "memory keeps rising"]
+        checks: ["Focus on allocations not CPU hotspots"]
+      Memory:
+        likelihood: "High"
+        signals: ["RSS grows", "heap grows", "OOM events"]
+        checks: ["Track object counts", "Look for caches without bounds", "Check reference cycles"]
+      Disk:
+        likelihood: "Low"
+        signals: ["Not primarily IO-driven"]
+        checks: ["Only check if swap/oom triggers IO"]
+      Network:
+        likelihood: "Low–Medium"
+        signals: ["connection leaks", "client pools growing"]
+        checks: ["Check open sockets", "HTTP client pooling", "Close responses"]
+      OS:
+        likelihood: "Medium"
+        signals: ["file descriptors leak", "zombie processes"]
+        checks: ["Check fd usage", "Process table", "Limits"]
+      Runtime:
+        likelihood: "High"
+        signals: ["GC can’t reclaim", "reference cycles", "finalizers"]
+        checks: ["Inspect GC stats", "Check cycles", "Use tracemalloc (Python)"]
+      Framework:
+        likelihood: "Medium"
+        signals: ["global caches", "session stores", "ORM identity maps"]
+        checks: ["Bound caches", "Expire sessions", "Clear identity maps"]
+      Cloud:
+        likelihood: "Low"
+        signals: ["usually app-side"]
+        checks: ["Only after app checks, validate infra"]
+      AI:
+        likelihood: "Low"
+        signals: ["large prompt history stored"]
+        checks: ["Don’t store full history unbounded"]
